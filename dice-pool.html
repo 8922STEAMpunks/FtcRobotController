@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dyson Dice Pool</title>
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: Georgia, 'Times New Roman', serif;
+            color: #3d2b1f;
+            background-color: #b8935a;
+            background-image:
+                repeating-linear-gradient(
+                    0deg,
+                    transparent,
+                    transparent 2px,
+                    rgba(0,0,0,0.03) 2px,
+                    rgba(0,0,0,0.03) 4px
+                ),
+                repeating-linear-gradient(
+                    90deg,
+                    transparent,
+                    transparent 2px,
+                    rgba(0,0,0,0.02) 2px,
+                    rgba(0,0,0,0.02) 4px
+                );
+        }
+
+        .card {
+            background: #f5e6c8;
+            background-image:
+                radial-gradient(ellipse at 20% 30%, rgba(255,255,255,0.15) 0%, transparent 60%),
+                radial-gradient(ellipse at 80% 70%, rgba(139,94,60,0.08) 0%, transparent 50%);
+            border: 3px solid #8b5e3c;
+            border-radius: 12px;
+            padding: 2rem 2.5rem;
+            width: min(560px, 94vw);
+            box-shadow:
+                0 6px 24px rgba(0,0,0,0.35),
+                inset 0 1px 0 rgba(255,255,255,0.4);
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 2rem;
+            color: #5c3317;
+            margin-bottom: 0.2rem;
+            letter-spacing: 0.05em;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.15);
+        }
+
+        .subtitle {
+            text-align: center;
+            font-size: 0.85rem;
+            color: #8b5e3c;
+            margin-bottom: 1.8rem;
+            font-style: italic;
+        }
+
+        /* Controls row */
+        .controls {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 1.5rem;
+            margin-bottom: 1.2rem;
+            flex-wrap: wrap;
+        }
+
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        label {
+            font-size: 1rem;
+            color: #5c3317;
+            white-space: nowrap;
+        }
+
+        select {
+            padding: 0.35rem 0.7rem;
+            font-size: 1rem;
+            border: 2px solid #8b5e3c;
+            border-radius: 5px;
+            background: #fdf5e6;
+            color: #3d2b1f;
+            font-family: inherit;
+            cursor: pointer;
+            appearance: auto;
+        }
+
+        select:focus { outline: 2px solid #c8895a; outline-offset: 1px; }
+
+        /* View toggle */
+        .toggle-row {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.4rem;
+            margin-bottom: 1.6rem;
+            font-size: 0.9rem;
+            color: #5c3317;
+        }
+
+        .toggle-track {
+            position: relative;
+            width: 48px;
+            height: 24px;
+            background: #c8a97e;
+            border-radius: 12px;
+            border: 2px solid #8b5e3c;
+            cursor: pointer;
+            transition: background 0.2s;
+            flex-shrink: 0;
+        }
+
+        .toggle-track.pips { background: #8b5e3c; }
+
+        .toggle-knob {
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 16px;
+            height: 16px;
+            background: #f5e6c8;
+            border-radius: 50%;
+            transition: left 0.2s;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+        }
+
+        .toggle-track.pips .toggle-knob { left: 26px; }
+
+        /* Roll button */
+        .roll-btn {
+            display: block;
+            margin: 0 auto 1.8rem;
+            padding: 0.9rem 3.5rem;
+            font-size: 1.9rem;
+            font-family: inherit;
+            font-weight: bold;
+            letter-spacing: 0.12em;
+            color: #f5e6c8;
+            background: #6b3d1e;
+            border: 3px solid #4a2a12;
+            border-radius: 9px;
+            cursor: pointer;
+            box-shadow:
+                0 5px 0 #3a1f0c,
+                0 6px 12px rgba(0,0,0,0.35);
+            transition: transform 0.08s, box-shadow 0.08s;
+            user-select: none;
+        }
+
+        .roll-btn:hover { background: #7d4a24; }
+
+        .roll-btn:active {
+            transform: translateY(4px);
+            box-shadow:
+                0 1px 0 #3a1f0c,
+                0 2px 6px rgba(0,0,0,0.3);
+        }
+
+        /* Dice display */
+        .dice-area {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+            min-height: 72px;
+            margin-bottom: 1.4rem;
+            padding: 0.5rem;
+        }
+
+        /* Number die */
+        .die {
+            width: 64px;
+            height: 64px;
+            border-radius: 10px;
+            border: 3px solid #8b5e3c;
+            background: #fdf5e6;
+            box-shadow: 2px 3px 6px rgba(0,0,0,0.22);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            font-weight: bold;
+            animation: pop-in 0.3s ease-out both;
+        }
+
+        .die.hit-green {
+            background: #dff0d8;
+            border-color: #4a7c3f;
+            color: #2d5016;
+        }
+
+        .die.hit-red {
+            background: #f5d5d5;
+            border-color: #a03030;
+            color: #7a1515;
+        }
+
+        /* Pip die */
+        .die-pip {
+            width: 64px;
+            height: 64px;
+            border-radius: 10px;
+            border: 3px solid #8b5e3c;
+            background: #fdf5e6;
+            box-shadow: 2px 3px 6px rgba(0,0,0,0.22);
+            padding: 7px;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: repeat(3, 1fr);
+            gap: 2px;
+            animation: pop-in 0.3s ease-out both;
+        }
+
+        .die-pip.hit-green {
+            background: #dff0d8;
+            border-color: #4a7c3f;
+        }
+
+        .die-pip.hit-red {
+            background: #f5d5d5;
+            border-color: #a03030;
+        }
+
+        .pip-cell {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .pip-dot {
+            width: 9px;
+            height: 9px;
+            border-radius: 50%;
+            background: #3d2b1f;
+        }
+
+        .die-pip.hit-green .pip-dot { background: #2d5016; }
+        .die-pip.hit-red .pip-dot { background: #7a1515; }
+
+        /* Result text */
+        .result-area {
+            text-align: center;
+            min-height: 2.5rem;
+        }
+
+        .result-hits {
+            font-size: 1.45rem;
+            color: #3d2b1f;
+        }
+
+        .result-hits span {
+            font-weight: bold;
+            font-size: 1.7rem;
+            color: #4a7c3f;
+        }
+
+        .result-fumble {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #a03030;
+            letter-spacing: 0.08em;
+            animation: shake 0.35s ease-in-out;
+        }
+
+        /* Key legend */
+        .legend {
+            display: flex;
+            justify-content: center;
+            gap: 1.2rem;
+            margin-top: 1.2rem;
+            font-size: 0.78rem;
+            color: #7a5c40;
+            flex-wrap: wrap;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+
+        .legend-swatch {
+            width: 14px;
+            height: 14px;
+            border-radius: 3px;
+            border: 2px solid;
+        }
+
+        .legend-swatch.green { background: #dff0d8; border-color: #4a7c3f; }
+        .legend-swatch.red   { background: #f5d5d5; border-color: #a03030; }
+        .legend-swatch.plain { background: #fdf5e6; border-color: #8b5e3c; }
+
+        @keyframes pop-in {
+            0%   { transform: scale(0.4) rotate(-15deg); opacity: 0; }
+            70%  { transform: scale(1.1) rotate(3deg); }
+            100% { transform: scale(1) rotate(0deg); opacity: 1; }
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            20%       { transform: translateX(-8px); }
+            40%       { transform: translateX(8px); }
+            60%       { transform: translateX(-5px); }
+            80%       { transform: translateX(5px); }
+        }
+    </style>
+</head>
+<body>
+<div class="card">
+    <h1>Dyson Dice Pool</h1>
+    <p class="subtitle">Roll d6s &mdash; 5s &amp; 6s score, duplicate 1s penalize</p>
+
+    <div class="controls">
+        <div class="control-group">
+            <label for="poolSize">Pool Size:</label>
+            <select id="poolSize">
+                <option value="2">2</option>
+                <option value="3">3</option>
+                <option value="4">4</option>
+                <option value="5" selected>5</option>
+                <option value="6">6</option>
+                <option value="7">7</option>
+                <option value="8">8</option>
+                <option value="9">9</option>
+                <option value="10">10</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="toggle-row">
+        <span>Numbers</span>
+        <div class="toggle-track" id="toggleTrack" role="switch" aria-checked="false" tabindex="0" title="Toggle dice view">
+            <div class="toggle-knob" id="toggleKnob"></div>
+        </div>
+        <span>Pips</span>
+    </div>
+
+    <button class="roll-btn" id="rollBtn">ROLL</button>
+
+    <div class="dice-area" id="diceArea"></div>
+
+    <div class="result-area" id="resultArea"></div>
+
+    <div class="legend">
+        <div class="legend-item"><div class="legend-swatch green"></div> 5 or 6 (scores hits)</div>
+        <div class="legend-item"><div class="legend-swatch red"></div> 1 (may penalize)</div>
+        <div class="legend-item"><div class="legend-swatch plain"></div> 2–4 (neutral)</div>
+    </div>
+</div>
+
+<script>
+    // Pip grid positions [row, col] 0-indexed in a 3×3 grid
+    const PIP_MAP = {
+        1: [[1,1]],
+        2: [[0,2],[2,0]],
+        3: [[0,2],[1,1],[2,0]],
+        4: [[0,0],[0,2],[2,0],[2,2]],
+        5: [[0,0],[0,2],[1,1],[2,0],[2,2]],
+        6: [[0,0],[0,2],[1,0],[1,2],[2,0],[2,2]],
+    };
+
+    let pipMode = false;
+
+    const toggleTrack = document.getElementById('toggleTrack');
+    const diceArea    = document.getElementById('diceArea');
+    const resultArea  = document.getElementById('resultArea');
+
+    toggleTrack.addEventListener('click', () => {
+        pipMode = !pipMode;
+        toggleTrack.classList.toggle('pips', pipMode);
+        toggleTrack.setAttribute('aria-checked', pipMode);
+    });
+
+    toggleTrack.addEventListener('keydown', e => {
+        if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); toggleTrack.click(); }
+    });
+
+    document.getElementById('rollBtn').addEventListener('click', roll);
+    document.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') roll(); });
+
+    function roll() {
+        const size = parseInt(document.getElementById('poolSize').value);
+        const results = Array.from({ length: size }, () => Math.ceil(Math.random() * 6));
+        results.sort((a, b) => a - b);
+        const hits = calcHits(results);
+        renderDice(results);
+        renderResult(hits);
+    }
+
+    function calcHits(results) {
+        let hits = 0;
+        for (const face of [5, 6]) {
+            const n = results.filter(r => r === face).length;
+            if (n === 1)    hits += 1;
+            else if (n > 1) hits += n * 2;
+        }
+        const ones = results.filter(r => r === 1).length;
+        if (ones > 1) hits -= ones;
+        return hits;
+    }
+
+    function dieClass(value) {
+        if (value === 5 || value === 6) return 'hit-green';
+        if (value === 1)               return 'hit-red';
+        return '';
+    }
+
+    function renderDice(results) {
+        diceArea.innerHTML = '';
+        results.forEach((val, i) => {
+            const cls = dieClass(val);
+            const el = pipMode ? makePipDie(val, cls) : makeNumberDie(val, cls);
+            el.style.animationDelay = `${i * 60}ms`;
+            diceArea.appendChild(el);
+        });
+    }
+
+    function makeNumberDie(val, cls) {
+        const d = document.createElement('div');
+        d.className = `die ${cls}`;
+        d.textContent = val;
+        return d;
+    }
+
+    function makePipDie(val, cls) {
+        const d = document.createElement('div');
+        d.className = `die-pip ${cls}`;
+
+        // Build 9 cells
+        const cells = Array.from({ length: 9 }, () => {
+            const c = document.createElement('div');
+            c.className = 'pip-cell';
+            return c;
+        });
+
+        // Place dots
+        for (const [row, col] of PIP_MAP[val]) {
+            const dot = document.createElement('div');
+            dot.className = 'pip-dot';
+            cells[row * 3 + col].appendChild(dot);
+        }
+
+        cells.forEach(c => d.appendChild(c));
+        return d;
+    }
+
+    function renderResult(hits) {
+        if (hits < 0) {
+            resultArea.innerHTML = '<div class="result-fumble">FUMBLE!</div>';
+        } else {
+            resultArea.innerHTML = `<div class="result-hits">Total Hits: <span>${hits}</span></div>`;
+        }
+    }
+</script>
+</body>
+</html>
