@@ -416,16 +416,16 @@
         return hits;
     }
 
-    function dieClass(value) {
+    function dieClass(value, results) {
         if (value === 5 || value === 6) return 'hit-green';
-        if (value === 1)               return 'hit-red';
+        if (value === 1 && results.filter(r => r === 1).length > 1) return 'hit-red';
         return '';
     }
 
     function renderDice(results) {
         diceArea.innerHTML = '';
         results.forEach((val, i) => {
-            const cls = dieClass(val);
+            const cls = dieClass(val, results);
             const el = pipMode ? makePipDie(val, cls) : makeNumberDie(val, cls);
             el.style.animationDelay = `${i * 60}ms`;
             diceArea.appendChild(el);
