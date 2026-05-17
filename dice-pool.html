@@ -233,6 +233,27 @@
             border-color: #a03030;
         }
 
+        .die.hit-blue {
+            background: #d0e8f8;
+            border-color: #2a6fa8;
+            color: #1a4a72;
+        }
+
+        .die-pip.hit-blue {
+            background: #d0e8f8;
+            border-color: #2a6fa8;
+        }
+
+        .die-pip.hit-blue .pip-dot { background: #1a4a72; }
+
+        .die.clickable, .die-pip.clickable {
+            cursor: pointer;
+        }
+
+        .die.clickable:hover, .die-pip.clickable:hover {
+            filter: brightness(0.92);
+        }
+
         .pip-cell {
             display: flex;
             align-items: center;
@@ -348,6 +369,7 @@
     </div>
 
     <button class="roll-btn" id="rollBtn">ROLL</button>
+    <p style="text-align:center;font-size:0.8rem;color:#8b5e3c;font-style:italic;margin-bottom:1rem;">tap a die to reroll it</p>
 
     <div class="dice-area" id="diceArea"></div>
 
@@ -392,16 +414,27 @@
         if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); toggleTrack.click(); }
     });
 
+    let currentResults = [];
+    let lockedIndices = new Set();
+
     document.getElementById('rollBtn').addEventListener('click', roll);
     document.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') roll(); });
 
     function roll() {
         const size = parseInt(document.getElementById('poolSize').value);
-        const results = Array.from({ length: size }, () => Math.ceil(Math.random() * 6));
-        results.sort((a, b) => a - b);
-        const hits = calcHits(results);
-        renderDice(results);
-        renderResult(hits);
+        currentResults = Array.from({ length: size }, () => Math.ceil(Math.random() * 6));
+        currentResults.sort((a, b) => a - b);
+        lockedIndices = new Set();
+        renderDice(currentResults, -1);
+        renderResult(calcHits(currentResults));
+    }
+
+    function rerollDie(index) {
+        if (lockedIndices.has(index)) return;
+        currentResults[index] = Math.ceil(Math.random() * 6);
+        lockedIndices.add(index);
+        renderDice(currentResults, index);
+        renderResult(calcHits(currentResults));
     }
 
     function calcHits(results) {
@@ -422,12 +455,28 @@
         return '';
     }
 
-    function renderDice(results) {
+    function renderDice(results, rerolledIndex) {
         diceArea.innerHTML = '';
         results.forEach((val, i) => {
-            const cls = dieClass(val, results);
+            const locked = lockedIndices.has(i);
+            const cls = locked ? 'hit-blue' : dieClass(val, results);
             const el = pipMode ? makePipDie(val, cls) : makeNumberDie(val, cls);
-            el.style.animationDelay = `${i * 60}ms`;
+
+            if (rerolledIndex === -1) {
+                // Fresh roll — stagger animate all
+                el.style.animationDelay = `${i * 60}ms`;
+            } else if (i === rerolledIndex) {
+                // Only the rerolled die animates
+                el.style.animationDelay = '0ms';
+            } else {
+                el.style.animation = 'none';
+            }
+
+            if (!locked) {
+                el.classList.add('clickable');
+                el.addEventListener('click', () => rerollDie(i));
+            }
+
             diceArea.appendChild(el);
         });
     }
